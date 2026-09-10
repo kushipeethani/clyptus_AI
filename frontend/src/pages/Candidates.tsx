@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Eye, CheckCircle, XCircle, Users } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, Filter, Eye, CheckCircle, XCircle, Users, Sparkles, UserPlus, FileText } from 'lucide-react';
 import { candidateService } from '../services/candidateService';
 import { Candidate } from '../types';
 import { Button } from '../components/common/Button';
@@ -16,8 +16,11 @@ export default function Candidates() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSearch = searchParams.get('search') || '';
+
   // Search & Filter state
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState('');
   
   // Pagination
@@ -29,6 +32,14 @@ export default function Candidates() {
   useEffect(() => {
     fetchCandidates();
   }, []);
+
+  // Sync with searchParams if changed from external navigation
+  useEffect(() => {
+    const query = searchParams.get('search');
+    if (query !== null) {
+      setSearchTerm(query);
+    }
+  }, [searchParams]);
 
   const fetchCandidates = async () => {
     setIsLoading(true);
@@ -47,12 +58,14 @@ export default function Candidates() {
     // Handle filtering
     let result = [...candidates];
 
-    if (searchTerm) {
-      const lowercasedSearch = searchTerm.toLowerCase();
+    if (searchTerm.trim()) {
+      const lowercasedSearch = searchTerm.toLowerCase().trim();
       result = result.filter(c => 
         c.name.toLowerCase().includes(lowercasedSearch) ||
         c.email.toLowerCase().includes(lowercasedSearch) ||
-        c.skills.some(s => s.toLowerCase().includes(lowercasedSearch))
+        c.skills.some(s => s.toLowerCase().includes(lowercasedSearch)) ||
+        (c.summary && c.summary.toLowerCase().includes(lowercasedSearch)) ||
+        (c.resumeFile && c.resumeFile.toLowerCase().includes(lowercasedSearch))
       );
     }
 
@@ -84,60 +97,80 @@ export default function Candidates() {
     currentPage * itemsPerPage
   );
 
-  if (isLoading) return <LoadingSpinner className="min-h-[60vh]" />;
-  if (error) return <div className="text-red-500 p-4">{error} <Button onClick={fetchCandidates} className="ml-4" size="sm">Retry</Button></div>;
-
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">Candidates</h1>
-          <p className="text-sm text-gray-400 mt-1">Review applicant profiles, AI match scores, and hiring stages</p>
+          <h1 className="text-3xl font-black tracking-tight text-white font-['Outfit']">
+            Candidate <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-[#C084FC]">Database</span>
+          </h1>
+          <p className="text-xs font-mono text-[#A8A0B8] mt-1">Review applicant profiles, neural match scoring, and resume pipeline</p>
         </div>
-        <Button onClick={() => navigate('/upload')}>
+        <Button onClick={() => navigate('/upload')} leftIcon={<UserPlus className="w-4 h-4" />}>
           Add Candidate
         </Button>
       </div>
 
-      <div className="bg-[rgba(17,10,27,0.75)] backdrop-blur-xl p-5 rounded-2xl shadow-xl border border-white/10 flex flex-col md:flex-row gap-4">
+      {/* Filter and Search Bar */}
+      <div className="bg-[rgba(16,10,26,0.68)] backdrop-blur-2xl p-4.5 rounded-[20px] shadow-[0_15px_40px_rgba(0,0,0,0.4)] border border-[rgba(168,85,247,0.18)] flex flex-col md:flex-row gap-4">
         <div className="flex-1">
           <Input
-            placeholder="Search by name, email, or skills..."
+            placeholder="Search candidate name, email, skills, or resume keywords..."
             leftIcon={<Search className="w-4 h-4" />}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              if (e.target.value) {
+                setSearchParams({ search: e.target.value });
+              } else {
+                setSearchParams({});
+              }
+            }}
           />
         </div>
-        <div className="w-full md:w-64 flex items-center gap-2">
-          <Filter className="w-5 h-5 text-gray-400" />
-          <select
-            className="w-full bg-[rgba(10,5,18,0.8)] border border-white/15 rounded-xl shadow-sm text-white focus:border-[#a855f7] focus:ring-1 focus:ring-[#a855f7] sm:text-sm py-2.5 px-3 outline-none"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="" className="bg-[#0e071a] text-white">All Statuses</option>
-            <option value="New" className="bg-[#0e071a] text-white">New</option>
-            <option value="Under Review" className="bg-[#0e071a] text-white">Under Review</option>
-            <option value="Shortlisted" className="bg-[#0e071a] text-white">Shortlisted</option>
-            <option value="Interview Scheduled" className="bg-[#0e071a] text-white">Interview Scheduled</option>
-            <option value="Selected" className="bg-[#0e071a] text-white">Selected</option>
-            <option value="Rejected" className="bg-[#0e071a] text-white">Rejected</option>
-          </select>
+        <div className="w-full md:w-72 flex items-center gap-2">
+          <div className="relative w-full">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#A8A0B8]">
+              <Filter className="w-4 h-4" />
+            </div>
+            <select
+              className="w-full bg-[rgba(12,6,18,0.75)] backdrop-blur-xl border border-[rgba(168,85,247,0.22)] rounded-xl shadow-sm text-white focus:border-[#B86BFF] focus:ring-2 focus:ring-[#B86BFF]/25 text-xs font-mono py-2.5 pl-9 pr-8 outline-none transition-all cursor-pointer"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="" className="bg-[#0e071a] text-white">All Candidate Stages</option>
+              <option value="New" className="bg-[#0e071a] text-white">Stage: New</option>
+              <option value="Under Review" className="bg-[#0e071a] text-white">Stage: Under Review</option>
+              <option value="Shortlisted" className="bg-[#0e071a] text-white">Stage: Shortlisted</option>
+              <option value="Interview Scheduled" className="bg-[#0e071a] text-white">Stage: Interview Scheduled</option>
+              <option value="Selected" className="bg-[#0e071a] text-white">Stage: Selected</option>
+              <option value="Rejected" className="bg-[#0e071a] text-white">Stage: Rejected</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {filteredCandidates.length === 0 ? (
-        <div className="bg-[rgba(17,10,27,0.75)] backdrop-blur-xl rounded-2xl shadow-xl border border-white/10 p-16 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-purple-500/10 flex items-center justify-center mx-auto mb-4 border border-purple-500/30">
-            <Users className="h-8 w-8 text-[#c084fc]" />
+      {/* Loading state */}
+      {isLoading ? (
+        <LoadingSpinner className="min-h-[50vh]" label="Loading Candidate Intelligence..." />
+      ) : error ? (
+        <div className="p-6 rounded-2xl bg-red-950/30 border border-red-500/40 text-red-300 flex items-center justify-between font-mono text-xs">
+          <span>{error}</span>
+          <Button onClick={fetchCandidates} size="sm">Retry</Button>
+        </div>
+      ) : filteredCandidates.length === 0 ? (
+        <div className="bg-[rgba(16,10,26,0.65)] backdrop-blur-2xl rounded-[22px] shadow-2xl border border-[rgba(168,85,247,0.18)] p-16 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-purple-500/10 flex items-center justify-center mx-auto mb-4 border border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
+            <Users className="h-8 w-8 text-[#C084FC]" />
           </div>
           <h3 className="text-lg font-bold text-white">
-            {candidates.length === 0 ? 'No candidates' : 'No candidates found'}
+            {candidates.length === 0 ? 'No Candidates In Database' : 'No Matching Candidates'}
           </h3>
-          <p className="mt-1 text-sm text-gray-400 max-w-sm mx-auto">
+          <p className="mt-1 text-xs text-[#A8A0B8] max-w-sm mx-auto font-mono">
             {candidates.length === 0 
               ? 'There are currently no candidates in the portal. Upload resumes to get started.'
-              : 'No candidates matched your search and filter criteria.'}
+              : `No candidates matched "${searchTerm}". Try different skills or keywords.`}
           </p>
           {candidates.length === 0 ? (
             <div className="mt-6">
@@ -145,23 +178,23 @@ export default function Candidates() {
             </div>
           ) : (
             <div className="mt-6">
-              <Button variant="outline" onClick={() => { setSearchTerm(''); setStatusFilter(''); }}>
-                Clear Filters
+              <Button variant="outline" onClick={() => { setSearchTerm(''); setStatusFilter(''); setSearchParams({}); }}>
+                Reset Filters
               </Button>
             </div>
           )}
         </div>
       ) : (
-        <div className="overflow-hidden">
+        <div className="overflow-hidden space-y-4">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Candidate</TableHead>
                 <TableHead>Experience</TableHead>
-                <TableHead>Skills</TableHead>
-                <TableHead>Match</TableHead>
+                <TableHead>Extracted Skills</TableHead>
+                <TableHead>AI Match</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -169,43 +202,49 @@ export default function Candidates() {
                 <TableRow key={candidate.id}>
                   <TableCell>
                     <div>
-                      <div className="font-semibold text-white">{candidate.name}</div>
-                      <div className="text-gray-400 text-xs mt-0.5">{candidate.email}</div>
+                      <div className="font-bold text-white tracking-wide">{candidate.name}</div>
+                      <div className="text-[#A8A0B8] text-xs font-mono mt-0.5">{candidate.email}</div>
+                      {candidate.resumeFile && (
+                        <div className="flex items-center gap-1 text-[10px] font-mono text-[#D8B4FE]/80 mt-1">
+                          <FileText className="w-3 h-3 text-[#B86BFF]" />
+                          <span>{candidate.resumeFile}</span>
+                        </div>
+                      )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-gray-300 font-medium">{candidate.experience} yrs</TableCell>
+                  <TableCell className="text-[#D8B4FE] font-mono text-xs">{candidate.experience} yrs</TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1.5 max-w-[220px]">
+                    <div className="flex flex-wrap gap-1.5 max-w-[240px]">
                       {candidate.skills.slice(0, 3).map(skill => (
-                        <span key={skill} className="px-2 py-0.5 bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[10px] font-semibold rounded-md">
+                        <span key={skill} className="px-2 py-0.5 bg-purple-500/10 border border-purple-500/20 text-[#D8B4FE] text-[10px] font-mono font-medium rounded-md">
                           {skill}
                         </span>
                       ))}
                       {candidate.skills.length > 3 && (
-                        <span className="px-2 py-0.5 bg-white/5 border border-white/10 text-gray-300 text-[10px] font-semibold rounded-md">
+                        <span className="px-2 py-0.5 bg-white/[0.04] border border-white/10 text-[#A8A0B8] text-[10px] font-mono rounded-md">
                           +{candidate.skills.length - 3}
                         </span>
                       )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className={`font-bold ${(candidate.matchScore ?? 0) >= 85 ? 'text-emerald-400' : (candidate.matchScore ?? 0) >= 70 ? 'text-amber-400' : 'text-gray-400'}`}>
-                      {candidate.matchScore === null ? 'Not matched' : `${candidate.matchScore}%`}
+                    <span className={`font-mono font-bold text-xs ${(candidate.matchScore ?? 0) >= 80 ? 'text-emerald-400' : (candidate.matchScore ?? 0) >= 60 ? 'text-[#D8B4FE]' : 'text-[#A8A0B8]'}`}>
+                      {candidate.matchScore === null ? 'Pending' : `${candidate.matchScore.toFixed(1)}%`}
                     </span>
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={candidate.status} />
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => navigate(`/candidates/${candidate.id}`)} title="View Profile">
-                        <Eye className="w-4 h-4 text-gray-400 hover:text-[#c084fc]" />
+                        <Eye className="w-4 h-4 text-[#A8A0B8] hover:text-[#B86BFF]" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleStatusChange(candidate.id, 'Shortlisted')} title="Shortlist">
-                        <CheckCircle className="w-4 h-4 text-gray-400 hover:text-emerald-400" />
+                      <Button variant="ghost" size="sm" onClick={() => handleStatusChange(candidate.id, 'Shortlisted')} title="Shortlist Candidate">
+                        <CheckCircle className="w-4 h-4 text-[#A8A0B8] hover:text-emerald-400" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleStatusChange(candidate.id, 'Rejected')} title="Reject">
-                        <XCircle className="w-4 h-4 text-gray-400 hover:text-red-400" />
+                      <Button variant="ghost" size="sm" onClick={() => handleStatusChange(candidate.id, 'Rejected')} title="Reject Candidate">
+                        <XCircle className="w-4 h-4 text-[#A8A0B8] hover:text-red-400" />
                       </Button>
                     </div>
                   </TableCell>

@@ -1,18 +1,24 @@
 import os
 import json
 import io
+import secrets
 from typing import Literal, Optional
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from Backend.database import create_tables, get_db_connection
+from Backend.database import (
+    create_tables,
+    get_db_connection,
+    hash_password,
+    verify_password,
+)
 from Backend.embeddings import initialize_embedding_model
 from Backend.resume import process_resume
 from Backend.job import create_job
 from Backend.matching import get_top_candidates
 from Backend.llm import DEFAULT_MODEL, SUPPORTED_MODELS, generate_interview_kit_llm
-from pypdf import PdfReader
+from Backend.pdf_parser import extract_document_text
 
 
 app = FastAPI(
@@ -38,6 +44,106 @@ app.add_middleware(
 # Create database tables when the application starts
 create_tables()
 initialize_embedding_model()
+
+
+# -------------------------
+# Authentication Models & Endpoints
+# -------------------------
+
+class RegisterRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: Optional[str] = "recruiter"
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+@app.post("/auth/register")
+def register_user(request: RegisterRequest):
+    name = request.name.strip()
+    email = request.email.strip().lower()
+    password = request.password
+
+    if not name:
+        raise HTTPException(status_code=400, detail="Full name is required.")
+    if not email or "@" not in email or "." not in email:
+        raise HTTPException(status_code=400, detail="A valid email address is required.")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
+
+    connection = get_db_connection()
+    try:
+        existing = connection.execute(
+            "SELECT id FROM users WHERE email = ?", (email,)
+        ).fetchone()
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail="An account with this email already exists. Please sign in instead.",
+            )
+
+        pwd_hash, salt = hash_password(password)
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            INSERT INTO users (name, email, password_hash, salt, role)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (name, email, pwd_hash, salt, request.role or "recruiter"),
+        )
+        connection.commit()
+        user_id = cursor.lastrowid
+
+        return {
+            "success": True,
+            "message": "User registered successfully",
+            "user": {
+                "id": user_id,
+                "name": name,
+                "email": email,
+                "role": request.role or "recruiter",
+            },
+        }
+    finally:
+        connection.close()
+
+
+@app.post("/auth/login")
+def login_user(request: LoginRequest):
+    email = request.email.strip().lower()
+    password = request.password
+
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password are required.")
+
+    connection = get_db_connection()
+    try:
+        user = connection.execute(
+            "SELECT * FROM users WHERE email = ?", (email,)
+        ).fetchone()
+
+        if not user or not verify_password(password, user["password_hash"], user["salt"]):
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid email or password. Please register first if you do not have an account.",
+            )
+
+        token = f"token_{secrets.token_urlsafe(32)}"
+        return {
+            "token": token,
+            "user": {
+                "id": user["id"],
+                "name": user["name"],
+                "email": user["email"],
+                "role": user["role"],
+            },
+        }
+    finally:
+        connection.close()
 
 
 # -------------------------
@@ -290,27 +396,25 @@ async def create_job_from_file(
     file: UploadFile = File(...),
     title: str = Form(""),
 ):
-    """Create a job from a PDF or UTF-8 text job-description file."""
-    filename = file.filename or "job-description"
-    suffix = os.path.splitext(filename)[1].lower()
+    """Create a job from a PDF, DOCX, or UTF-8 text job-description file."""
+    raw_filename = file.filename or "job-description.pdf"
+    clean_filename = os.path.basename(raw_filename.strip().strip("\"'"))
+    if not clean_filename:
+        clean_filename = "job-description.pdf"
+
     content = await file.read()
-    try:
-        if suffix == ".pdf":
-            reader = PdfReader(io.BytesIO(content))
-            description = "\n".join(page.extract_text() or "" for page in reader.pages).strip()
-        elif suffix == ".txt":
-            description = content.decode("utf-8").strip()
-        else:
-            raise HTTPException(status_code=422, detail="Job descriptions must be PDF or TXT files")
-    except HTTPException:
-        raise
-    except Exception as error:
-        raise HTTPException(status_code=422, detail=f"Could not read job description: {error}") from error
+    if not content:
+        raise HTTPException(status_code=422, detail="Uploaded job description file is empty.")
+
+    description = extract_document_text(clean_filename, content)
 
     if not description:
-        raise HTTPException(status_code=422, detail="The job description file contains no readable text")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Could not extract readable text from '{clean_filename}'. Please ensure the file contains selectable text, or paste the text directly."
+        )
 
-    derived_title = os.path.splitext(os.path.basename(filename))[0].replace("_", " ").replace("-", " ")
+    derived_title = os.path.splitext(clean_filename)[0].replace("_", " ").replace("-", " ")
     try:
         result = create_job(title.strip() or derived_title, description)
     except ValueError as error:

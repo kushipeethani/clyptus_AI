@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UploadCloud, FileText, CheckCircle, ArrowRight, Sparkles, X, FileBadge } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle, ArrowRight, Sparkles, X, FileBadge, Cpu, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { candidateService } from '../services/candidateService';
 
@@ -109,45 +109,34 @@ export default function UploadMatch() {
     }
   };
 
-  // --- Animation Variants ---
-  const pageVariants = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' as const } },
-  };
-
-  const cardVariants = {
-    initial: { scale: 0.98, opacity: 0 },
-    animate: { scale: 1, opacity: 1, transition: { duration: 0.4, delay: 0.1, ease: 'easeOut' as const } }
-  };
-
   const stepVariants = {
-    inactive: { backgroundColor: 'rgba(255, 255, 255, 0.05)', color: '#64748b', scale: 1, border: '1px solid rgba(255, 255, 255, 0.1)' },
-    active: { backgroundColor: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', scale: 1.1, border: '2px solid #a855f7', boxShadow: '0 0 20px rgba(168, 85, 247, 0.5)' },
-    completed: { backgroundColor: '#9333ea', color: '#ffffff', scale: 1, border: '2px solid #a855f7', boxShadow: '0 0 12px rgba(168, 85, 247, 0.3)' }
+    inactive: { backgroundColor: 'rgba(255, 255, 255, 0.04)', color: '#A8A0B8', scale: 1, border: '1px solid rgba(168, 85, 247, 0.15)' },
+    active: { backgroundColor: 'rgba(168, 85, 247, 0.22)', color: '#D8B4FE', scale: 1.08, border: '2px solid #B86BFF', boxShadow: '0 0 25px rgba(184, 107, 255, 0.5)' },
+    completed: { backgroundColor: '#7C3AED', color: '#ffffff', scale: 1, border: '2px solid #B86BFF', boxShadow: '0 0 15px rgba(168, 85, 247, 0.4)' }
   };
 
   return (
     <motion.div 
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
       className="max-w-4xl mx-auto space-y-10 py-4 px-4 sm:px-0"
     >
+      {/* Header telemetry */}
       <div className="flex flex-col items-center justify-center text-center space-y-2">
-        <motion.div 
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', damping: 15, delay: 0.2 }}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-[#c084fc] text-xs font-semibold uppercase tracking-wider mb-2 shadow-sm"
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>AI Powered</span>
-        </motion.div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">Candidate Match Intelligence</h1>
-        <p className="text-gray-400 max-w-lg mx-auto text-sm">Upload resumes and let our AI engine instantly extract skills, evaluate experience, and score against your job description.</p>
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(20,10,32,0.65)] border border-[rgba(168,85,247,0.3)] text-[#D8B4FE] text-xs font-mono font-semibold uppercase tracking-wider mb-1 shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+          <Sparkles className="w-3.5 h-3.5 text-[#B86BFF]" />
+          <span>NEURAL EVALUATION PIPELINE</span>
+        </div>
+        <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tight font-['Outfit']">
+          Candidate Match <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-200 to-[#C084FC]">Intelligence</span>
+        </h1>
+        <p className="text-[#A8A0B8] max-w-lg mx-auto text-xs font-mono leading-relaxed">
+          Upload resumes and let our AI engine extract competencies, evaluate experience, and compute semantic match scores against target JDs.
+        </p>
       </div>
 
-      {/* Animated Stepper */}
+      {/* Stepper Navigation */}
       <div className="flex items-center justify-center max-w-2xl mx-auto relative z-10">
         {[1, 2, 3].map((s, index) => {
           const isCompleted = step > s;
@@ -160,19 +149,19 @@ export default function UploadMatch() {
                   variants={stepVariants}
                   initial="inactive"
                   animate={isCompleted ? 'completed' : isActive ? 'active' : 'inactive'}
-                  className="w-12 h-12 rounded-full flex items-center justify-center font-bold relative z-10 transition-colors duration-300"
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center font-mono font-bold text-sm relative z-10 transition-colors duration-300"
                 >
-                  {isCompleted ? <CheckCircle className="w-6 h-6" /> : s}
+                  {isCompleted ? <CheckCircle className="w-6 h-6 text-white" /> : s}
                 </motion.div>
-                <div className={`absolute top-14 whitespace-nowrap text-xs font-semibold tracking-wider uppercase transition-colors duration-300 ${isActive ? 'text-[#c084fc]' : isCompleted ? 'text-white' : 'text-gray-500'}`}>
-                  {s === 1 ? 'Upload Resumes' : s === 2 ? 'Upload JD' : 'AI Analysis'}
+                <div className={`absolute top-14 whitespace-nowrap text-[11px] font-mono font-bold tracking-wider uppercase transition-colors duration-300 ${isActive ? 'text-[#D8B4FE]' : isCompleted ? 'text-white' : 'text-[#A8A0B8]/60'}`}>
+                  {s === 1 ? '1. Resumes' : s === 2 ? '2. Job Description' : '3. AI Matching'}
                 </div>
               </div>
               
               {index < 2 && (
-                <div className="flex-1 h-1 mx-4 relative bg-white/10 rounded-full overflow-hidden">
+                <div className="flex-1 h-1 mx-4 relative bg-white/5 rounded-full overflow-hidden border border-[rgba(168,85,247,0.1)]">
                   <motion.div 
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#9333ea] to-[#c084fc]"
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#7C3AED] via-[#9333EA] to-[#B86BFF] shadow-[0_0_10px_#B86BFF]"
                     initial={{ width: '0%' }}
                     animate={{ width: step > s ? '100%' : '0%' }}
                     transition={{ duration: 0.5, ease: 'easeInOut' }}
@@ -184,311 +173,280 @@ export default function UploadMatch() {
         })}
       </div>
 
-      {/* Main Upload Card */}
-      <motion.div variants={cardVariants} className="mt-16">
-        <div className="bg-[rgba(17,10,27,0.78)] backdrop-blur-2xl rounded-3xl overflow-hidden relative border border-white/10 shadow-2xl">
-          
-          {/* Subtle background glow */}
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full filter blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-fuchsia-500/20 rounded-full filter blur-3xl pointer-events-none" />
+      {/* Main Container Card */}
+      <div className="mt-16 bg-[rgba(16,10,26,0.7)] backdrop-blur-2xl rounded-[26px] overflow-hidden relative border border-[rgba(168,85,247,0.2)] shadow-[0_25px_70px_rgba(0,0,0,0.6)]">
+        {/* Top highlight */}
+        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-[rgba(184,107,255,0.4)] to-transparent pointer-events-none" />
 
-          <div className="p-10 sm:p-14 relative z-10">
-            <AnimatePresence mode="wait">
-              {step === 1 && (
-                <motion.div 
-                  key="step1"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-8"
+        <div className="p-8 sm:p-12 relative z-10">
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <motion.div 
+                key="step1"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-8"
+              >
+                <div className="text-center space-y-1">
+                  <h2 className="text-2xl font-black text-white font-['Outfit']">Upload Candidate Resumes</h2>
+                  <p className="text-[#A8A0B8] text-xs font-mono">PDF resumes are parsed securely by the backend AI engine (up to 10MB each).</p>
+                </div>
+                
+                <div 
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, 'resume')}
+                  onMouseMove={handleMouseMove}
+                  className="perspective-1000"
                 >
-                  <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-bold text-white">Add Candidate Resumes</h2>
-                    <p className="text-gray-400 text-sm">PDF resumes are supported up to 10MB each.</p>
-                  </div>
-                  
-                  <div 
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, 'resume')}
-                    onMouseMove={handleMouseMove}
-                    className="perspective-1000"
+                  <motion.div 
+                    animate={{ 
+                      scale: isDragging ? 1.015 : 1,
+                      borderColor: isDragging ? '#B86BFF' : 'rgba(168, 85, 247, 0.25)',
+                      backgroundColor: isDragging ? 'rgba(168, 85, 247, 0.12)' : 'rgba(12, 6, 18, 0.65)'
+                    }}
+                    className="border-2 border-dashed rounded-2xl p-12 transition-all duration-300 relative overflow-hidden group cursor-pointer shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:border-[#B86BFF]/70"
+                    onClick={() => fileInputRef.current?.click()}
                   >
-                    <motion.div 
-                      animate={{ 
-                        scale: isDragging ? 1.02 : 1,
-                        borderColor: isDragging ? '#a855f7' : 'rgba(255, 255, 255, 0.15)',
-                        backgroundColor: isDragging ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)'
-                      }}
-                      className="border-2 border-dashed rounded-2xl p-12 transition-colors duration-300 relative overflow-hidden group cursor-pointer shadow-sm hover:border-purple-500/40"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <input 
-                        ref={fileInputRef}
-                        type="file" 
-                        multiple
-                        className="hidden" 
-                        accept="application/pdf,.pdf"
-                        onChange={(e) => handleFileChange(e, 'resume')}
-                      />
-                      
-                      {/* 3D Illustration */}
-                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-10 group-hover:opacity-20 transition-opacity duration-500">
-                        <motion.div 
-                          className="transform-3d w-48 h-64 bg-[#130924] rounded-xl shadow-2xl border border-purple-500/30 relative"
-                          animate={{ 
-                            rotateX: mousePos.y * 20, 
-                            rotateY: mousePos.x * -20,
-                            z: 50
-                          }}
-                          transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-                        >
-                           <div className="absolute top-8 left-8 right-8 h-4 bg-purple-500/30 rounded animate-pulse" />
-                           <div className="absolute top-16 left-8 w-1/2 h-3 bg-purple-500/20 rounded" />
-                           <div className="absolute top-24 left-8 right-8 h-2 bg-purple-500/20 rounded" />
-                           <div className="absolute top-28 left-8 right-12 h-2 bg-purple-500/20 rounded" />
-                        </motion.div>
-                      </div>
-
-                      <div className="flex flex-col items-center justify-center relative z-10">
-                        <motion.div 
-                          whileHover={{ y: -5 }}
-                          className="w-20 h-20 bg-purple-500/10 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.25)] flex items-center justify-center mb-6 border border-purple-500/40"
-                        >
-                          <UploadCloud className="w-10 h-10 text-[#c084fc]" />
-                        </motion.div>
-                        <span className="text-lg text-white font-semibold mb-2">
-                          {isDragging ? 'Drop files here' : 'Click or drag resumes here'}
-                        </span>
-                        <span className="text-sm text-gray-400">Upload multiple files at once to bulk analyze.</span>
-                      </div>
-                    </motion.div>
-                  </div>
-
-                  {/* Uploaded Files List */}
-                  {resumeFiles.length > 0 && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="space-y-3"
-                    >
-                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Ready for Analysis ({resumeFiles.length})</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                        <AnimatePresence>
-                          {resumeFiles.map((f, i) => (
-                            <motion.div 
-                              key={`${f.name}-${i}`}
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.9 }}
-                              className="flex items-center justify-between bg-white/5 border border-white/10 p-3.5 rounded-xl shadow-sm hover:border-purple-500/40 transition-colors group"
-                            >
-                              <div className="flex items-center gap-3 overflow-hidden">
-                                <div className="w-8 h-8 rounded bg-purple-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
-                                  <FileText className="w-4 h-4 text-[#c084fc]" />
-                                </div>
-                                <div className="flex flex-col overflow-hidden">
-                                  <span className="text-sm font-medium text-white truncate">{f.name}</span>
-                                  <span className="text-xs text-gray-400">{(f.size / 1024 / 1024).toFixed(2)} MB</span>
-                                </div>
-                              </div>
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); removeResume(i); }}
-                                className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  <div className="pt-4 flex justify-end">
-                    <motion.button 
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      disabled={resumeFiles.length === 0}
-                      onClick={handleNextStep}
-                      className="px-8 py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-[#9333ea] via-[#a855f7] to-[#c084fc] shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] border border-purple-400/30 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    >
-                      Continue to Job Description <ArrowRight className="w-5 h-5" />
-                    </motion.button>
-                  </div>
-                </motion.div>
-              )}
-
-              {step === 2 && (
-                <motion.div 
-                  key="step2"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-8"
-                >
-                  <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-bold text-white">Target Job Description</h2>
-                    <p className="text-gray-400 text-sm">Provide the role title and description used for real candidate matching.</p>
-                  </div>
-
-                  {processingError && (
-                    <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-                      {processingError}
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    <input
-                      value={jobTitle}
-                      onChange={(event) => setJobTitle(event.target.value)}
-                      placeholder="Job title, e.g. Backend Developer"
-                      className="w-full rounded-xl border border-white/15 bg-[rgba(8,4,14,0.85)] px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-[#a855f7]"
+                    <input 
+                      ref={fileInputRef}
+                      type="file" 
+                      multiple
+                      className="hidden" 
+                      accept="application/pdf,.pdf"
+                      onChange={(e) => handleFileChange(e, 'resume')}
                     />
-                    <textarea
-                      value={jobDescription}
-                      onChange={(event) => setJobDescription(event.target.value)}
-                      placeholder="Paste the complete job description and required skills"
-                      rows={8}
-                      className="w-full resize-y rounded-xl border border-white/15 bg-[rgba(8,4,14,0.85)] px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-[#a855f7]"
-                    />
-                  </div>
-                  
-                  <div 
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, 'jd')}
-                    onMouseMove={handleMouseMove}
-                    className="perspective-1000"
-                  >
-                    <motion.div 
-                      animate={{ 
-                        scale: isDragging ? 1.02 : 1,
-                        borderColor: isDragging ? '#a855f7' : 'rgba(255, 255, 255, 0.15)',
-                        backgroundColor: isDragging ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)'
-                      }}
-                      className="border-2 border-dashed rounded-2xl p-12 transition-colors duration-300 relative overflow-hidden group cursor-pointer shadow-sm hover:border-purple-500/40"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <input 
-                        ref={fileInputRef}
-                        type="file" 
-                        className="hidden" 
-                        accept="application/pdf,.pdf,text/plain,.txt"
-                        onChange={(e) => handleFileChange(e, 'jd')}
-                      />
-                      
-                      <div className="flex flex-col items-center justify-center relative z-10">
-                        <motion.div 
-                          whileHover={{ y: -5 }}
-                          className="w-20 h-20 bg-purple-500/10 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.25)] flex items-center justify-center mb-6 border border-purple-500/40"
-                        >
-                          <FileBadge className="w-10 h-10 text-[#c084fc]" />
-                        </motion.div>
-                        <span className="text-lg text-white font-semibold mb-2">
-                          {isDragging ? 'Drop JD here' : 'Click or drag JD here'}
-                        </span>
-                        <span className="text-sm text-gray-400">PDF or TXT formats supported. A PDF is parsed securely by the backend.</span>
-                      </div>
-                    </motion.div>
-                  </div>
 
-                  {jdFile && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center justify-between bg-white/5 border border-purple-500/30 p-4 rounded-xl shadow-lg group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
-                          <CheckCircle className="w-5 h-5 text-[#c084fc]" />
-                        </div>
-                        <div>
-                          <span className="text-sm font-semibold text-white block">{jdFile.name}</span>
-                          <span className="text-xs text-gray-400">{(jdFile.size / 1024 / 1024).toFixed(2)} MB • Ready for matching</span>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); removeJd(); }}
-                        className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                    <div className="flex flex-col items-center justify-center relative z-10">
+                      <motion.div 
+                        whileHover={{ y: -4, scale: 1.05 }}
+                        className="w-20 h-20 bg-gradient-to-br from-[#2D124D] to-[#120724] rounded-2xl shadow-[0_0_25px_rgba(168,85,247,0.35)] flex items-center justify-center mb-5 border border-[rgba(184,107,255,0.4)]"
                       >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </motion.div>
-                  )}
+                        <UploadCloud className="w-10 h-10 text-[#D8B4FE]" />
+                      </motion.div>
+                      <span className="text-lg text-white font-bold mb-1 font-['Outfit']">
+                        {isDragging ? 'Drop Resumes Into Zone' : 'Click or Drag Resumes Here'}
+                      </span>
+                      <span className="text-xs font-mono text-[#A8A0B8]">Batch upload supported • Fast multi-resume ingestion</span>
+                    </div>
+                  </motion.div>
+                </div>
 
-                  <div className="pt-4 flex justify-between items-center">
-                    <button 
-                      onClick={() => setStep(1)}
-                      className="text-gray-400 hover:text-white font-medium px-4 py-2 transition-colors"
-                    >
-                      Back
-                    </button>
-                    <motion.button 
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      disabled={!jdFile && !jobDescription.trim()}
-                      onClick={handleNextStep}
-                      className="px-8 py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-[#9333ea] via-[#a855f7] to-[#c084fc] shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] border border-purple-400/30 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    >
-                      <Sparkles className="w-5 h-5" /> Start AI Analysis
-                    </motion.button>
+                {/* Uploaded Files Grid */}
+                {resumeFiles.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-3"
+                  >
+                    <h3 className="text-xs font-mono font-bold text-[#A8A0B8] uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#B86BFF]" />
+                      Files Queued For Parsing ({resumeFiles.length})
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2">
+                      <AnimatePresence>
+                        {resumeFiles.map((f, i) => (
+                          <motion.div 
+                            key={`${f.name}-${i}`}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="flex items-center justify-between bg-white/[0.03] border border-[rgba(168,85,247,0.18)] p-3.5 rounded-xl shadow-sm hover:border-[rgba(184,107,255,0.4)] transition-colors group"
+                          >
+                            <div className="flex items-center gap-3 overflow-hidden">
+                              <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0 text-[#D8B4FE]">
+                                <FileText className="w-4 h-4" />
+                              </div>
+                              <div className="flex flex-col overflow-hidden">
+                                <span className="text-xs font-mono font-semibold text-white truncate">{f.name}</span>
+                                <span className="text-[10px] font-mono text-[#A8A0B8]">{(f.size / 1024 / 1024).toFixed(2)} MB</span>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); removeResume(i); }}
+                              className="p-1.5 text-[#A8A0B8] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                              title="Remove file"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                  </motion.div>
+                )}
+
+                <div className="pt-4 flex justify-end">
+                  <button 
+                    disabled={resumeFiles.length === 0}
+                    onClick={handleNextStep}
+                    className="px-8 py-3 rounded-xl font-mono font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-[#7C3AED] via-[#9333EA] to-[#A855F7] shadow-[0_4px_20px_rgba(124,58,237,0.4)] hover:shadow-[0_6px_25px_rgba(184,107,255,0.5)] border border-purple-400/30 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
+                  >
+                    <span>Configure Job Description</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 2 && (
+              <motion.div 
+                key="step2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-8"
+              >
+                <div className="text-center space-y-1">
+                  <h2 className="text-2xl font-black text-white font-['Outfit']">Target Job Description</h2>
+                  <p className="text-[#A8A0B8] text-xs font-mono">Specify the role title and description to calibrate candidate match ranking.</p>
+                </div>
+
+                {processingError && (
+                  <div className="rounded-xl border border-red-500/40 bg-red-950/30 p-4 text-xs font-mono text-red-300">
+                    {processingError}
                   </div>
-                </motion.div>
-              )}
+                )}
 
-              {step === 3 && (
-                <motion.div 
-                  key="step3"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="py-16 flex flex-col items-center justify-center text-center space-y-10"
+                <div className="space-y-4">
+                  <input
+                    value={jobTitle}
+                    onChange={(event) => setJobTitle(event.target.value)}
+                    placeholder="Job Title (e.g. Senior AI / ML Systems Engineer)"
+                    className="w-full rounded-xl border border-[rgba(168,85,247,0.25)] bg-[rgba(12,6,18,0.75)] backdrop-blur-xl px-4 py-3 text-sm text-white placeholder-[#A8A0B8]/50 outline-none focus:border-[#B86BFF] focus:ring-2 focus:ring-[#B86BFF]/25 transition-all font-medium"
+                  />
+                  <textarea
+                    value={jobDescription}
+                    onChange={(event) => setJobDescription(event.target.value)}
+                    placeholder="Paste the target job description, core responsibilities, and mandatory skills..."
+                    rows={8}
+                    className="w-full resize-y rounded-xl border border-[rgba(168,85,247,0.25)] bg-[rgba(12,6,18,0.75)] backdrop-blur-xl px-4 py-3 text-sm text-white placeholder-[#A8A0B8]/50 outline-none focus:border-[#B86BFF] focus:ring-2 focus:ring-[#B86BFF]/25 transition-all font-medium leading-relaxed"
+                  />
+                </div>
+                
+                <div 
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, 'jd')}
+                  onMouseMove={handleMouseMove}
+                  className="perspective-1000"
                 >
-                  <div className="relative w-32 h-32">
-                    {/* Glowing AI rings */}
-                    <div className="absolute inset-0 border-4 border-purple-500/20 rounded-full animate-[spin_4s_linear_infinite]" />
-                    <div className="absolute inset-2 border-4 border-t-[#c084fc] border-r-transparent border-b-[#9333ea] border-l-transparent rounded-full animate-[spin_2s_linear_infinite]" />
-                    <div className="absolute inset-4 border-4 border-purple-500/10 rounded-full animate-[spin_3s_linear_infinite_reverse]" />
+                  <motion.div 
+                    animate={{ 
+                      scale: isDragging ? 1.015 : 1,
+                      borderColor: isDragging ? '#B86BFF' : 'rgba(168, 85, 247, 0.25)',
+                      backgroundColor: isDragging ? 'rgba(168, 85, 247, 0.12)' : 'rgba(12, 6, 18, 0.65)'
+                    }}
+                    className="border-2 border-dashed rounded-2xl p-8 transition-colors duration-300 relative overflow-hidden group cursor-pointer text-center hover:border-[#B86BFF]/70"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input 
+                      ref={fileInputRef}
+                      type="file" 
+                      className="hidden" 
+                      accept="application/pdf,.pdf,text/plain,.txt"
+                      onChange={(e) => handleFileChange(e, 'jd')}
+                    />
                     
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Sparkles className="w-10 h-10 text-[#c084fc] animate-pulse" />
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="w-14 h-14 bg-gradient-to-br from-[#2D124D] to-[#120724] rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.3)] flex items-center justify-center mb-3 border border-[rgba(184,107,255,0.4)]">
+                        <FileBadge className="w-7 h-7 text-[#D8B4FE]" />
+                      </div>
+                      <span className="text-sm font-bold text-white mb-1">
+                        {isDragging ? 'Drop JD File Here' : 'Or Upload JD as PDF/TXT'}
+                      </span>
+                      <span className="text-[11px] font-mono text-[#A8A0B8]">Automated text extraction from PDF or plain text</span>
                     </div>
-                  </div>
+                  </motion.div>
+                </div>
 
-                  <div className="space-y-4 max-w-sm w-full">
-                    <h2 className="text-2xl font-bold text-white">Analyzing {resumeFiles.length} Profile{resumeFiles.length > 1 ? 's' : ''}...</h2>
-                    <p className="text-sm text-gray-400 h-6">
-                      {progress < 30 ? 'Extracting skills and experience...' : 
-                       progress < 70 ? 'Cross-referencing with Job Description...' : 
-                       'Calculating AI match scores...'}
-                    </p>
-                    
-                    <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden relative border border-white/10">
-                      <motion.div 
-                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#9333ea] to-[#c084fc] rounded-full shadow-[0_0_12px_rgba(168,85,247,0.6)]"
-                        style={{ width: `${progress}%` }}
-                        layout
-                      />
-                      {/* Scanning line effect */}
-                      <motion.div 
-                        animate={{ x: ['-100%', '300%'] }}
-                        transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
-                        className="absolute top-0 bottom-0 w-1/3 bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-[-20deg]"
-                      />
+                {jdFile && (
+                  <div className="flex items-center justify-between bg-white/[0.03] border border-[rgba(184,107,255,0.4)] p-4 rounded-xl shadow-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-[#B86BFF]">
+                        <CheckCircle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-mono font-bold text-white block">{jdFile.name}</span>
+                        <span className="text-[10px] font-mono text-[#A8A0B8]">{(jdFile.size / 1024 / 1024).toFixed(2)} MB • Ready for AI Matching</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center text-xs font-semibold text-[#c084fc]">
-                      <span>Processing</span>
-                      <span>{Math.round(progress)}%</span>
-                    </div>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); removeJd(); }}
+                      className="p-2 text-[#A8A0B8] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                )}
+
+                <div className="pt-4 flex justify-between items-center">
+                  <button 
+                    onClick={() => setStep(1)}
+                    className="text-xs font-mono font-bold text-[#A8A0B8] hover:text-white px-4 py-2 transition-colors uppercase tracking-wider"
+                  >
+                    ← Back
+                  </button>
+                  <button 
+                    disabled={!jdFile && !jobDescription.trim()}
+                    onClick={handleNextStep}
+                    className="px-8 py-3 rounded-xl font-mono font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-[#7C3AED] via-[#9333EA] to-[#A855F7] shadow-[0_4px_20px_rgba(124,58,237,0.4)] hover:shadow-[0_6px_25px_rgba(184,107,255,0.5)] border border-purple-400/30 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
+                  >
+                    <Zap className="w-4 h-4 text-purple-200" />
+                    <span>Initiate AI Neural Matching</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 3 && (
+              <motion.div 
+                key="step3"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="py-16 flex flex-col items-center justify-center text-center space-y-8"
+              >
+                <div className="relative w-32 h-32 flex items-center justify-center">
+                  {/* Glowing AI rings */}
+                  <div className="absolute inset-0 border-2 border-purple-500/20 rounded-full animate-spin-slow" />
+                  <div className="absolute inset-2 border-2 border-t-[#B86BFF] border-r-transparent border-b-[#7C3AED] border-l-transparent rounded-full animate-spin" />
+                  <div className="absolute inset-4 border border-purple-500/10 rounded-full" />
+                  
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2D124D] to-[#120724] border border-[rgba(184,107,255,0.5)] flex items-center justify-center shadow-[0_0_25px_rgba(184,107,255,0.5)]">
+                    <Cpu className="w-7 h-7 text-[#D8B4FE] animate-pulse" />
+                  </div>
+                </div>
+
+                <div className="space-y-4 max-w-sm w-full">
+                  <h2 className="text-2xl font-black text-white font-['Outfit']">
+                    Evaluating {resumeFiles.length} Candidate{resumeFiles.length > 1 ? 's' : ''}...
+                  </h2>
+                  <p className="text-xs font-mono text-[#A8A0B8] h-5">
+                    {progress < 30 ? 'Parsing resumes & extracting core entities...' : 
+                     progress < 70 ? 'Vectorizing skills & calculating embeddings...' : 
+                     'Computing weighted neural compatibility scores...'}
+                  </p>
+                  
+                  <div className="w-full h-2.5 bg-[#0E061A] rounded-full overflow-hidden relative border border-[rgba(168,85,247,0.25)] shadow-[inset_0_1px_3px_rgba(0,0,0,0.8)]">
+                    <motion.div 
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#7C3AED] via-[#9333EA] to-[#B86BFF] rounded-full shadow-[0_0_15px_rgba(184,107,255,0.7)]"
+                      style={{ width: `${progress}%` }}
+                      layout
+                    />
+                  </div>
+                  <div className="flex justify-between items-center text-xs font-mono font-bold text-[#D8B4FE]">
+                    <span>STATUS: IN PROGRESS</span>
+                    <span>{Math.round(progress)}%</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }

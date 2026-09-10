@@ -5,7 +5,7 @@ import uuid
 
 from Backend.database import get_db_connection
 from Backend.embeddings import create_embedding
-from Backend.pdf_parser import extract_text_from_pdf
+from Backend.pdf_parser import extract_text_from_pdf, extract_document_text
 
 
 UPLOAD_FOLDER = "uploads/resumes"
@@ -49,27 +49,38 @@ def extract_resume_metadata(text):
 def process_resume(file):
     """
     Process one resume and save it to the database.
+    Supports PDF, DOCX, and TXT formats with robust error handling.
     """
 
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-    filename = os.path.basename(file.filename or "")
+    raw_filename = file.filename or "resume.pdf"
+    clean_filename = os.path.basename(raw_filename.strip().strip("\"'"))
+    if not clean_filename:
+        clean_filename = "resume.pdf"
 
-    if not filename.lower().endswith(".pdf"):
-        raise ValueError("File is not a PDF")
+    content = file.file.read()
 
-    stored_filename = f"{uuid.uuid4().hex}_{filename}"
-    file_path = os.path.join(UPLOAD_FOLDER, stored_filename)
-
-    # Save PDF
-    with open(file_path, "wb") as output_file:
-        output_file.write(file.file.read())
-
-    # Extract text
-    resume_text = extract_text_from_pdf(file_path)
+    # Extract text from PDF, DOCX, or TXT
+    resume_text = extract_document_text(clean_filename, content)
 
     if not resume_text:
-        raise ValueError("Could not extract text from PDF")
+        is_pdf_like = content.startswith(b"%PDF") or clean_filename.lower().endswith(".pdf")
+        if is_pdf_like:
+            raise ValueError(f"Could not extract readable text from '{clean_filename}'. Ensure the PDF contains selectable text.")
+        raise ValueError(f"File '{clean_filename}' is not a valid PDF, DOCX, or TXT document.")
+
+    # Determine extension and store file
+    ext = os.path.splitext(clean_filename)[1].lower()
+    if not ext:
+        ext = ".pdf" if content.startswith(b"%PDF") else ".txt"
+        clean_filename += ext
+
+    stored_filename = f"{uuid.uuid4().hex}_{clean_filename}"
+    file_path = os.path.join(UPLOAD_FOLDER, stored_filename)
+
+    with open(file_path, "wb") as output_file:
+        output_file.write(content)
 
     # Extract basic candidate information
     name, email = extract_candidate_info(resume_text)
@@ -108,7 +119,7 @@ def process_resume(file):
 
     return {
         "candidate_id": candidate_id,
-        "filename": filename,
+        "filename": clean_filename,
         "name": name,
         "skills": skills,
         "experience": experience,

@@ -16,14 +16,13 @@ load_dotenv()
 
 DEFAULT_MODEL = os.getenv(
     "GROQ_MODEL",
-    "llama-3.3-70b-versatile"
+    "openai/gpt-oss-120b"
 )
 
 SUPPORTED_MODELS = [
-    DEFAULT_MODEL,
+    "openai/gpt-oss-120b",
     "openai/gpt-oss-20b",
     "qwen/qwen3.8-27b",
-    "openai/gpt-oss-120b",
     "groq/compound-mini",
     "groq/compound",
 ]
@@ -385,6 +384,8 @@ Candidate Resume / Profile:
     # ========================================================
 
     selected_model = model or DEFAULT_MODEL
+    if "llama" in selected_model:
+        selected_model = DEFAULT_MODEL
 
     try:
 

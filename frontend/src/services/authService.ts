@@ -1,31 +1,42 @@
+import { api, getApiErrorMessage } from './api';
 import { User } from '../types';
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export interface LoginResponse {
+  token: string;
+  user: User;
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+  user: User;
+}
 
 export const authService = {
-  login: async (credentials: any) => {
-    // In a real app: return api.post('/auth/login', credentials);
-    await delay(1000); // Simulate network
-    
-    if (credentials.email === 'admin@example.com' || credentials.password) {
-      return {
-        data: {
-          token: 'mock-jwt-token-12345',
-          user: {
-            id: 1,
-            name: 'Jane Recruiter',
-            email: credentials.email,
-            role: 'recruiter'
-          } as User
-        }
-      };
+  login: async (credentials: { email: string; password: string }) => {
+    try {
+      const response = await api.post<LoginResponse>('/auth/login', credentials);
+      return response;
+    } catch (error) {
+      const message = getApiErrorMessage(
+        error,
+        'Invalid email or password. Please check your credentials or register.'
+      );
+      throw new Error(message);
     }
-    throw new Error('Invalid credentials');
   },
-  
-  register: async (userData: any) => {
-    // return api.post('/auth/register', userData);
-    await delay(1000);
-    return { data: { success: true } };
-  }
+
+  register: async (userData: { name: string; email: string; password: string; role?: string }) => {
+    try {
+      const response = await api.post<RegisterResponse>('/auth/register', userData);
+      return response;
+    } catch (error) {
+      const message = getApiErrorMessage(
+        error,
+        'Failed to register account. Please try again.'
+      );
+      throw new Error(message);
+    }
+  },
 };
+
