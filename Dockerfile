@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install lightweight CPU-only PyTorch (reduces image size and memory usage on Render)
+# Install lightweight CPU-only PyTorch
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 # Install python dependencies
@@ -22,6 +22,7 @@ COPY Backend/ ./Backend/
 # Create persistent uploads directory
 RUN mkdir -p /app/uploads
 
+ENV PORT=8000
 EXPOSE 8000
 
-CMD ["sh", "-c", "python -m uvicorn Backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["python", "-m", "uvicorn", "Backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
