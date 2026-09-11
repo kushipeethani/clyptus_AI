@@ -1,0 +1,27 @@
+services:
+  # FastAPI AI Recruitment Backend
+  - type: web
+    name: clyptus-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    branch: main
+    healthCheckPath: /
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: clyptus-postgres
+          property: connectionString
+
+databases:
+  # Cloud Managed PostgreSQL Database
+  - name: clyptus-postgres
+    databaseName: recruitment_db
+    user: postgres
+    plan: free
+    region: oregon
