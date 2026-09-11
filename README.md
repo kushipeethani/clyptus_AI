@@ -64,8 +64,8 @@
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/Subham999100/AI-Recruitment-Portal.git
-cd AI-Recruitment-Portal
+git clone https://github.com/kushipeethani/clyptus_AI.git
+cd clyptus_AI
 ```
 
 ---
