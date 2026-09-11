@@ -29,6 +29,18 @@ app = FastAPI(
     title="AI Recruitment Portal API"
 )
 
+@app.get("/")
+def root():
+    return {
+        "status": "healthy",
+        "service": "Clyptus AI Recruitment API",
+        "version": "1.0.0"
+    }
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 frontend_origins = [
     origin.strip()
     for origin in os.getenv(
