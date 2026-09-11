@@ -20,7 +20,7 @@ KNOWN_SKILLS = [
 
 def extract_candidate_info(text):
     """
-    Try to find the candidate's name and email from resume text.
+    Try to find the candidate's name, email, and phone number from resume text.
     """
 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
@@ -34,7 +34,14 @@ def extract_candidate_info(text):
 
     email = email_match.group(0) if email_match else None
 
-    return name, email
+    # Matches international and standard phone formats like +1 555-123-4567, (555) 123-4567, +91 9876543210, 9876543210
+    phone_match = re.search(
+        r"(?:(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}\b)",
+        text
+    )
+    phone = phone_match.group(0).strip() if phone_match else None
+
+    return name, email, phone
 
 
 def extract_resume_metadata(text):
@@ -46,7 +53,7 @@ def extract_resume_metadata(text):
     return skills, experience, summary
 
 
-def process_resume(file):
+def process_resume(file, user_id=None):
     """
     Process one resume and save it to the database.
     Supports PDF, DOCX, and TXT formats with robust error handling.
@@ -83,36 +90,92 @@ def process_resume(file):
         output_file.write(content)
 
     # Extract basic candidate information
-    name, email = extract_candidate_info(resume_text)
+    name, email, phone = extract_candidate_info(resume_text)
     skills, experience, summary = extract_resume_metadata(resume_text)
 
     # Create embedding
     embedding = create_embedding(resume_text)
 
-    # Save candidate
+    # Save or update candidate (deduplicate by email or filename for the same user)
     connection = get_db_connection()
-
     cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        INSERT INTO candidates
-        (name, email, resume_filename, resume_text, embedding, skills, experience, summary, uploaded_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        """,
-        (
-            name,
-            email,
-            stored_filename,
-            resume_text,
-            json.dumps(embedding),
-            json.dumps(skills),
-            experience,
-            summary,
-        )
-    )
+    existing = None
+    if email and len(email.strip()) > 3:
+        if user_id:
+            existing = connection.execute(
+                "SELECT id FROM candidates WHERE email = ? AND user_id = ?",
+                (email.strip(), user_id)
+            ).fetchone()
+        else:
+            existing = connection.execute(
+                "SELECT id FROM candidates WHERE email = ?",
+                (email.strip(),)
+            ).fetchone()
 
-    candidate_id = cursor.lastrowid
+    if not existing and clean_filename:
+        if user_id:
+            existing = connection.execute(
+                "SELECT id FROM candidates WHERE resume_filename LIKE ? AND user_id = ?",
+                (f"%_{clean_filename}", user_id)
+            ).fetchone()
+        else:
+            existing = connection.execute(
+                "SELECT id FROM candidates WHERE resume_filename LIKE ?",
+                (f"%_{clean_filename}",)
+            ).fetchone()
+
+    if existing:
+        candidate_id = existing["id"]
+        cursor.execute(
+            """
+            UPDATE candidates SET
+                name = ?,
+                email = ?,
+                phone = ?,
+                resume_filename = ?,
+                resume_text = ?,
+                embedding = ?,
+                skills = ?,
+                experience = ?,
+                summary = ?,
+                uploaded_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (
+                name,
+                email,
+                phone or "",
+                stored_filename,
+                resume_text,
+                json.dumps(embedding),
+                json.dumps(skills),
+                experience,
+                summary,
+                candidate_id,
+            )
+        )
+    else:
+        cursor.execute(
+            """
+            INSERT INTO candidates
+            (name, email, phone, resume_filename, resume_text, embedding, skills, experience, summary, uploaded_at, user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+            """,
+            (
+                name,
+                email,
+                phone or "",
+                stored_filename,
+                resume_text,
+                json.dumps(embedding),
+                json.dumps(skills),
+                experience,
+                summary,
+                user_id,
+            )
+        )
+        candidate_id = cursor.lastrowid
 
     connection.commit()
     connection.close()
@@ -121,6 +184,8 @@ def process_resume(file):
         "candidate_id": candidate_id,
         "filename": clean_filename,
         "name": name,
+        "email": email,
+        "phone": phone,
         "skills": skills,
         "experience": experience,
     }

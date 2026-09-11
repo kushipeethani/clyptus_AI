@@ -3,7 +3,11 @@ import json
 import io
 import secrets
 from typing import Literal, Optional
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -41,13 +45,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create database tables when the application starts
-create_tables()
-initialize_embedding_model()
+
+@app.on_event("startup")
+def startup_event():
+    create_tables()
+    initialize_embedding_model()
 
 
 # -------------------------
-# Authentication Models & Endpoints
+# Auth Models & Endpoints
 # -------------------------
 
 class RegisterRequest(BaseModel):
@@ -60,6 +66,32 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+def _get_current_user_id(
+    authorization: Optional[str] = None,
+    x_user_id: Optional[str] = None
+) -> Optional[int]:
+    """Resolve current user ID from session token or X-User-Id header."""
+    if authorization and "Bearer " in authorization:
+        token = authorization.split("Bearer ")[1].strip()
+        connection = get_db_connection()
+        try:
+            session = connection.execute(
+                "SELECT user_id FROM user_sessions WHERE token = ?", (token,)
+            ).fetchone()
+            if session:
+                return session["user_id"]
+        finally:
+            connection.close()
+
+    if x_user_id:
+        try:
+            return int(x_user_id)
+        except (ValueError, TypeError):
+            pass
+
+    return None
 
 
 @app.post("/auth/register")
@@ -95,12 +127,19 @@ def register_user(request: RegisterRequest):
             """,
             (name, email, pwd_hash, salt, request.role or "recruiter"),
         )
-        connection.commit()
         user_id = cursor.lastrowid
+
+        token = f"token_{secrets.token_urlsafe(32)}"
+        cursor.execute(
+            "INSERT INTO user_sessions (token, user_id) VALUES (?, ?)",
+            (token, user_id)
+        )
+        connection.commit()
 
         return {
             "success": True,
             "message": "User registered successfully",
+            "token": token,
             "user": {
                 "id": user_id,
                 "name": name,
@@ -133,6 +172,13 @@ def login_user(request: LoginRequest):
             )
 
         token = f"token_{secrets.token_urlsafe(32)}"
+        cursor = connection.cursor()
+        cursor.execute(
+            "INSERT INTO user_sessions (token, user_id) VALUES (?, ?)",
+            (token, user["id"])
+        )
+        connection.commit()
+
         return {
             "token": token,
             "user": {
@@ -178,10 +224,13 @@ def _parse_json(value, fallback):
 
 
 def _candidate_response(row, match=None):
+    row_keys = row.keys() if hasattr(row, 'keys') else []
+    phone = row["phone"] if "phone" in row_keys else ""
     return {
         "id": row["id"],
         "name": row["name"],
         "email": row["email"] or "",
+        "phone": phone or "",
         "skills": _parse_json(row["skills"], []),
         "experience": row["experience"] or 0,
         "status": row["status"],
@@ -267,14 +316,17 @@ def generate_interview_kit(request: InterviewKitRequest):
 
 @app.post("/resumes/upload")
 async def upload_resumes(
-    files: list[UploadFile] = File(...)
+    files: list[UploadFile] = File(...),
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
 ):
+    user_id = _get_current_user_id(authorization, x_user_id)
     successful = []
     failed = []
 
     for file in files:
         try:
-            result = process_resume(file)
+            result = process_resume(file, user_id=user_id)
             successful.append(result)
 
         except Exception as error:
@@ -295,9 +347,18 @@ async def upload_resumes(
 # -------------------------
 
 @app.get("/candidates")
-def list_candidates():
+def list_candidates(
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+):
+    user_id = _get_current_user_id(authorization, x_user_id)
     connection = get_db_connection()
-    rows = connection.execute("SELECT * FROM candidates ORDER BY id DESC").fetchall()
+    if user_id:
+        rows = connection.execute(
+            "SELECT * FROM candidates WHERE user_id = ? ORDER BY id DESC", (user_id,)
+        ).fetchall()
+    else:
+        rows = connection.execute("SELECT * FROM candidates ORDER BY id DESC").fetchall()
     candidates = []
     for row in rows:
         match = connection.execute(
@@ -310,9 +371,20 @@ def list_candidates():
 
 
 @app.get("/candidates/{candidate_id}")
-def get_candidate(candidate_id: int):
+def get_candidate(
+    candidate_id: int,
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+):
+    user_id = _get_current_user_id(authorization, x_user_id)
     connection = get_db_connection()
-    row = connection.execute("SELECT * FROM candidates WHERE id = ?", (candidate_id,)).fetchone()
+    if user_id:
+        row = connection.execute(
+            "SELECT * FROM candidates WHERE id = ? AND (user_id = ? OR user_id IS NULL)",
+            (candidate_id, user_id),
+        ).fetchone()
+    else:
+        row = connection.execute("SELECT * FROM candidates WHERE id = ?", (candidate_id,)).fetchone()
     if row is None:
         connection.close()
         raise HTTPException(status_code=404, detail="Candidate not found")
@@ -325,11 +397,23 @@ def get_candidate(candidate_id: int):
 
 
 @app.patch("/candidates/{candidate_id}/status")
-def update_candidate_status(candidate_id: int, request: CandidateStatusRequest):
+def update_candidate_status(
+    candidate_id: int,
+    request: CandidateStatusRequest,
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+):
+    user_id = _get_current_user_id(authorization, x_user_id)
     connection = get_db_connection()
-    cursor = connection.execute(
-        "UPDATE candidates SET status = ? WHERE id = ?", (request.status, candidate_id)
-    )
+    if user_id:
+        cursor = connection.execute(
+            "UPDATE candidates SET status = ? WHERE id = ? AND (user_id = ? OR user_id IS NULL)",
+            (request.status, candidate_id, user_id),
+        )
+    else:
+        cursor = connection.execute(
+            "UPDATE candidates SET status = ? WHERE id = ?", (request.status, candidate_id)
+        )
     if cursor.rowcount == 0:
         connection.close()
         raise HTTPException(status_code=404, detail="Candidate not found")
@@ -344,9 +428,20 @@ def update_candidate_status(candidate_id: int, request: CandidateStatusRequest):
 
 
 @app.get("/candidates/{candidate_id}/match")
-def get_candidate_match(candidate_id: int):
+def get_candidate_match(
+    candidate_id: int,
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+):
+    user_id = _get_current_user_id(authorization, x_user_id)
     connection = get_db_connection()
-    candidate = connection.execute("SELECT * FROM candidates WHERE id = ?", (candidate_id,)).fetchone()
+    if user_id:
+        candidate = connection.execute(
+            "SELECT * FROM candidates WHERE id = ? AND (user_id = ? OR user_id IS NULL)",
+            (candidate_id, user_id),
+        ).fetchone()
+    else:
+        candidate = connection.execute("SELECT * FROM candidates WHERE id = ?", (candidate_id,)).fetchone()
     if candidate is None:
         connection.close()
         raise HTTPException(status_code=404, detail="Candidate not found")
@@ -376,16 +471,61 @@ def get_candidate_match(candidate_id: int):
     }
 
 
+@app.delete("/candidates/{candidate_id}")
+def delete_candidate(
+    candidate_id: int,
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+):
+    """Delete a candidate record, match history, and uploaded resume asset."""
+    user_id = _get_current_user_id(authorization, x_user_id)
+    connection = get_db_connection()
+    try:
+        if user_id:
+            candidate = connection.execute(
+                "SELECT * FROM candidates WHERE id = ? AND (user_id = ? OR user_id IS NULL)",
+                (candidate_id, user_id),
+            ).fetchone()
+        else:
+            candidate = connection.execute("SELECT * FROM candidates WHERE id = ?", (candidate_id,)).fetchone()
+        if candidate is None:
+            raise HTTPException(status_code=404, detail="Candidate not found")
+
+        resume_filename = candidate["resume_filename"]
+        if resume_filename:
+            file_path = os.path.join("uploads/resumes", resume_filename)
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception:
+                    pass
+
+        connection.execute("DELETE FROM candidate_matches WHERE candidate_id = ?", (candidate_id,))
+        connection.execute("DELETE FROM candidates WHERE id = ?", (candidate_id,))
+        connection.commit()
+        return {
+            "success": True,
+            "message": f"Candidate #{candidate_id} and associated resume deleted successfully."
+        }
+    finally:
+        connection.close()
+
+
 # -------------------------
 # Create Job
 # -------------------------
 
 @app.post("/jobs")
-def create_new_job(job: JobRequest):
+def create_new_job(
+    job: JobRequest,
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+):
     if not job.title.strip() or not job.description.strip():
         raise HTTPException(status_code=422, detail="Job title and description are required")
+    user_id = _get_current_user_id(authorization, x_user_id)
     try:
-        result = create_job(job.title, job.description)
+        result = create_job(job.title, job.description, user_id=user_id)
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return {"data": result}
@@ -395,6 +535,8 @@ def create_new_job(job: JobRequest):
 async def create_job_from_file(
     file: UploadFile = File(...),
     title: str = Form(""),
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
 ):
     """Create a job from a PDF, DOCX, or UTF-8 text job-description file."""
     raw_filename = file.filename or "job-description.pdf"
@@ -415,17 +557,27 @@ async def create_job_from_file(
         )
 
     derived_title = os.path.splitext(clean_filename)[0].replace("_", " ").replace("-", " ")
+    user_id = _get_current_user_id(authorization, x_user_id)
     try:
-        result = create_job(title.strip() or derived_title, description)
+        result = create_job(title.strip() or derived_title, description, user_id=user_id)
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return {"data": result}
 
 
 @app.get("/jobs")
-def list_jobs():
+def list_jobs(
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+):
+    user_id = _get_current_user_id(authorization, x_user_id)
     connection = get_db_connection()
-    rows = connection.execute("SELECT * FROM jobs ORDER BY id DESC").fetchall()
+    if user_id:
+        rows = connection.execute(
+            "SELECT * FROM jobs WHERE user_id = ? OR user_id IS NULL ORDER BY id DESC", (user_id,)
+        ).fetchall()
+    else:
+        rows = connection.execute("SELECT * FROM jobs ORDER BY id DESC").fetchall()
     jobs = []
     for row in rows:
         count = connection.execute(
@@ -437,9 +589,19 @@ def list_jobs():
 
 
 @app.get("/jobs/{job_id}")
-def get_job(job_id: int):
+def get_job(
+    job_id: int,
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+):
+    user_id = _get_current_user_id(authorization, x_user_id)
     connection = get_db_connection()
-    row = connection.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+    if user_id:
+        row = connection.execute(
+            "SELECT * FROM jobs WHERE id = ? AND (user_id = ? OR user_id IS NULL)", (job_id, user_id)
+        ).fetchone()
+    else:
+        row = connection.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
     if row is None:
         connection.close()
         raise HTTPException(status_code=404, detail="Job not found")
@@ -455,9 +617,14 @@ def get_job(job_id: int):
 # -------------------------
 
 @app.get("/matching/{job_id}")
-def match_candidates(job_id: int):
+def match_candidates(
+    job_id: int,
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+):
+    user_id = _get_current_user_id(authorization, x_user_id)
     try:
-        matches = get_top_candidates(job_id)
+        matches = get_top_candidates(job_id, user_id=user_id)
         return {
             "job_id": job_id,
             "matches": matches
@@ -472,19 +639,47 @@ def match_candidates(job_id: int):
 # -------------------------
 
 @app.get("/dashboard")
-def get_dashboard():
+def get_dashboard(
+    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+):
+    user_id = _get_current_user_id(authorization, x_user_id)
     connection = get_db_connection()
-    stats = {
-        "total_candidates": connection.execute("SELECT COUNT(*) AS count FROM candidates").fetchone()["count"],
-        "total_jobs": connection.execute("SELECT COUNT(*) AS count FROM jobs").fetchone()["count"],
-        "shortlisted_candidates": connection.execute(
-            "SELECT COUNT(*) AS count FROM candidates WHERE status = 'Shortlisted'"
-        ).fetchone()["count"],
-        "interviews_scheduled": connection.execute(
-            "SELECT COUNT(*) AS count FROM candidates WHERE status = 'Interview Scheduled'"
-        ).fetchone()["count"],
-    }
-    candidate_rows = connection.execute("SELECT * FROM candidates ORDER BY id DESC LIMIT 4").fetchall()
+    if user_id:
+        stats = {
+            "total_candidates": connection.execute(
+                "SELECT COUNT(*) AS count FROM candidates WHERE user_id = ?", (user_id,)
+            ).fetchone()["count"],
+            "total_jobs": connection.execute(
+                "SELECT COUNT(*) AS count FROM jobs WHERE user_id = ? OR user_id IS NULL", (user_id,)
+            ).fetchone()["count"],
+            "shortlisted_candidates": connection.execute(
+                "SELECT COUNT(*) AS count FROM candidates WHERE status = 'Shortlisted' AND user_id = ?", (user_id,)
+            ).fetchone()["count"],
+            "interviews_scheduled": connection.execute(
+                "SELECT COUNT(*) AS count FROM candidates WHERE status = 'Interview Scheduled' AND user_id = ?", (user_id,)
+            ).fetchone()["count"],
+        }
+        candidate_rows = connection.execute(
+            "SELECT * FROM candidates WHERE user_id = ? ORDER BY id DESC LIMIT 4", (user_id,)
+        ).fetchall()
+        job_rows = connection.execute(
+            "SELECT * FROM jobs WHERE user_id = ? OR user_id IS NULL ORDER BY id DESC LIMIT 3", (user_id,)
+        ).fetchall()
+    else:
+        stats = {
+            "total_candidates": connection.execute("SELECT COUNT(*) AS count FROM candidates").fetchone()["count"],
+            "total_jobs": connection.execute("SELECT COUNT(*) AS count FROM jobs").fetchone()["count"],
+            "shortlisted_candidates": connection.execute(
+                "SELECT COUNT(*) AS count FROM candidates WHERE status = 'Shortlisted'"
+            ).fetchone()["count"],
+            "interviews_scheduled": connection.execute(
+                "SELECT COUNT(*) AS count FROM candidates WHERE status = 'Interview Scheduled'"
+            ).fetchone()["count"],
+        }
+        candidate_rows = connection.execute("SELECT * FROM candidates ORDER BY id DESC LIMIT 4").fetchall()
+        job_rows = connection.execute("SELECT * FROM jobs ORDER BY id DESC LIMIT 3").fetchall()
+
     recent_candidates = []
     for row in candidate_rows:
         match = connection.execute(
@@ -492,7 +687,7 @@ def get_dashboard():
             (row["id"],),
         ).fetchone()
         recent_candidates.append(_candidate_response(row, match))
-    job_rows = connection.execute("SELECT * FROM jobs ORDER BY id DESC LIMIT 3").fetchall()
+
     recent_jobs = []
     for row in job_rows:
         count = connection.execute(

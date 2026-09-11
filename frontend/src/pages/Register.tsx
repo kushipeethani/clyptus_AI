@@ -63,9 +63,6 @@ export default function Register() {
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Sign In</span>
         </Link>
-        <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-[#c084fc]">
-          Security Gate v4.9
-        </span>
       </div>
 
       {/* Header section with brand icon */}
@@ -152,7 +149,7 @@ export default function Register() {
                   </div>
                   <input
                     type="email"
-                    placeholder="recruiter@company.com"
+                    placeholder="Enter your email"
                     className="block w-full rounded-xl bg-[rgba(8,4,14,0.85)] border border-white/10 pl-11 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#a855f7] focus:ring-1 focus:ring-[#a855f7] transition-all duration-200"
                     {...register('email', {
                       required: 'Email address is required',
@@ -179,7 +176,7 @@ export default function Register() {
                   </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
+                    placeholder="Create password (min 6 characters)"
                     className="block w-full rounded-xl bg-[rgba(8,4,14,0.85)] border border-white/10 pl-11 pr-11 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#a855f7] focus:ring-1 focus:ring-[#a855f7] transition-all duration-200"
                     {...register('password', {
                       required: 'Password is required',
@@ -213,7 +210,7 @@ export default function Register() {
                   </div>
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
+                    placeholder="Confirm password"
                     className="block w-full rounded-xl bg-[rgba(8,4,14,0.85)] border border-white/10 pl-11 pr-11 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#a855f7] focus:ring-1 focus:ring-[#a855f7] transition-all duration-200"
                     {...register('confirmPassword', {
                       required: 'Please confirm your password',

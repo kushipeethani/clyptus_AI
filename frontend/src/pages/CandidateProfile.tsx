@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, MapPin, Download, BrainCircuit, Briefcase, GraduationCap, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Download, BrainCircuit, Briefcase, GraduationCap, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
 import { candidateService } from '../services/candidateService';
 import { Candidate, MatchResult } from '../types';
 import { Button } from '../components/common/Button';
@@ -62,6 +62,19 @@ export default function CandidateProfile() {
     }
   };
 
+  const handleDeleteCandidate = async () => {
+    if (!candidate) return;
+    if (!window.confirm(`Are you sure you want to permanently delete candidate ${candidate.name} and their uploaded resume?`)) {
+      return;
+    }
+    try {
+      await candidateService.deleteCandidate(candidate.id);
+      navigate('/candidates');
+    } catch {
+      setError('Unable to delete candidate record.');
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header Actions */}
@@ -75,6 +88,14 @@ export default function CandidateProfile() {
         <div className="flex items-center gap-3">
           <Button 
             variant="danger" 
+            size="sm" 
+            onClick={handleDeleteCandidate}
+            leftIcon={<Trash2 className="w-4 h-4" />}
+          >
+            Delete Candidate
+          </Button>
+          <Button 
+            variant="outline" 
             size="sm" 
             onClick={() => updateStatus('Rejected')}
             leftIcon={<XCircle className="w-4 h-4" />}
@@ -120,12 +141,10 @@ export default function CandidateProfile() {
                       <Mail className="w-4 h-4 text-[#B86BFF] shrink-0" /> 
                       <span className="truncate">{candidate.email}</span>
                     </div>
-                    {candidate.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-[#B86BFF] shrink-0" /> 
-                        <span>{candidate.phone}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-[#B86BFF] shrink-0" /> 
+                      <span>{candidate.phone || 'Phone not provided'}</span>
+                    </div>
                     {candidate.location && (
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-[#B86BFF] shrink-0" /> 

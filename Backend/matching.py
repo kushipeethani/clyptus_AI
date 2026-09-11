@@ -82,15 +82,21 @@ def calculate_semantic_score(job_embedding, candidate_embedding):
     return score
 
 
-def get_top_candidates(job_id, top_n=None):
+def get_top_candidates(job_id, top_n=None, user_id=None):
 
     connection = get_db_connection()
 
     # Get job
-    job = connection.execute(
-        "SELECT * FROM jobs WHERE id = ?",
-        (job_id,)
-    ).fetchone()
+    if user_id:
+        job = connection.execute(
+            "SELECT * FROM jobs WHERE id = ? AND (user_id = ? OR user_id IS NULL)",
+            (job_id, user_id)
+        ).fetchone()
+    else:
+        job = connection.execute(
+            "SELECT * FROM jobs WHERE id = ?",
+            (job_id,)
+        ).fetchone()
 
     if job is None:
         connection.close()
@@ -106,9 +112,15 @@ def get_top_candidates(job_id, top_n=None):
     keywords = json.loads(job["keywords"]) if job["keywords"] else []
 
     # Get candidates
-    candidates = connection.execute(
-        "SELECT * FROM candidates"
-    ).fetchall()
+    if user_id:
+        candidates = connection.execute(
+            "SELECT * FROM candidates WHERE (user_id = ? OR user_id IS NULL)",
+            (user_id,)
+        ).fetchall()
+    else:
+        candidates = connection.execute(
+            "SELECT * FROM candidates"
+        ).fetchall()
 
     matches = []
 
@@ -120,6 +132,21 @@ def get_top_candidates(job_id, top_n=None):
         candidate_embedding = np.array(
             json.loads(candidate["embedding"])
         ).reshape(1, -1)
+
+        # Dimension compatibility self-healing
+        if candidate_embedding.shape[1] != job_embedding.shape[1]:
+            try:
+                from Backend.embeddings import create_embedding
+                new_cand_vec = create_embedding(candidate["resume_text"])
+                candidate_embedding = np.array(new_cand_vec).reshape(1, -1)
+                connection.execute(
+                    "UPDATE candidates SET embedding = ? WHERE id = ?",
+                    (json.dumps(new_cand_vec), candidate["id"])
+                )
+                connection.commit()
+            except Exception as e:
+                print(f"[Matching] Dimension mismatch auto-heal notice: {e}")
+                continue
 
         # -------------------------
         # 1. Semantic score - 60%

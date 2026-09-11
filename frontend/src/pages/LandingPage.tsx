@@ -407,11 +407,7 @@ export default function LandingPage() {
   }, []);
 
   const handleLoginClick = () => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    } else {
-      navigate('/login');
-    }
+    navigate('/login');
   };
 
   return (
@@ -445,28 +441,13 @@ export default function LandingPage() {
           </a>
 
           <div className="nav-actions">
-            <div className="engine-badge">
-              <span className="live-dot" />
-              <span className="badge-text">Core v4.9 Active</span>
-            </div>
-            
-            {isAuthenticated ? (
-              <button 
-                onClick={() => navigate('/dashboard')} 
-                className="btn-primary-neon"
-                id="landingDashboardBtn"
-              >
-                Go to Dashboard
-              </button>
-            ) : (
-              <button 
-                onClick={handleLoginClick} 
-                className="btn-primary-neon"
-                id="landingLoginBtn"
-              >
-                Login
-              </button>
-            )}
+            <button 
+              onClick={handleLoginClick} 
+              className="btn-primary-neon"
+              id="landingLoginBtn"
+            >
+              Login
+            </button>
           </div>
         </div>
       </header>
@@ -492,26 +473,19 @@ export default function LandingPage() {
 
             <div className="hero-cta-group" data-reveal>
               <button 
-                onClick={() => navigate(isAuthenticated ? '/upload' : '/login')} 
+                onClick={() => {
+                  const el = document.getElementById('workflow');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }} 
                 className="btn-hero-primary"
                 id="heroLaunchBtn"
               >
-                <span>Launch Live ATS Audit</span>
+                <span>How it works</span>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
+                  <path d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                 </svg>
-              </button>
-
-              <button 
-                onClick={() => navigate(isAuthenticated ? '/candidates' : '/login')} 
-                className="btn-hero-secondary"
-                id="heroPipelineBtn"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <polygon points="10 8 16 12 10 16 10 8" />
-                </svg>
-                <span>Inspect Talent Pipeline</span>
               </button>
             </div>
 
@@ -695,7 +669,7 @@ export default function LandingPage() {
             <div className="workflow-timeline">
               <div 
                 className="timeline-card glass-card cursor-pointer" 
-                onClick={() => navigate(isAuthenticated ? '/upload' : '/login')}
+                onClick={() => navigate('/login')}
               >
                 <div className="t-step">01</div>
                 <div className="t-icon">📑</div>
@@ -706,7 +680,7 @@ export default function LandingPage() {
 
               <div 
                 className="timeline-card glass-card cursor-pointer" 
-                onClick={() => navigate(isAuthenticated ? '/upload' : '/login')}
+                onClick={() => navigate('/login')}
               >
                 <div className="t-step">02</div>
                 <div className="t-icon">🧠</div>
@@ -717,7 +691,7 @@ export default function LandingPage() {
 
               <div 
                 className="timeline-card glass-card cursor-pointer" 
-                onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')}
+                onClick={() => navigate('/login')}
               >
                 <div className="t-step">03</div>
                 <div className="t-icon">🎙️</div>
@@ -728,7 +702,7 @@ export default function LandingPage() {
 
               <div 
                 className="timeline-card glass-card cursor-pointer" 
-                onClick={() => navigate(isAuthenticated ? '/candidates' : '/login')}
+                onClick={() => navigate('/login')}
               >
                 <div className="t-step">04</div>
                 <div className="t-icon">🏆</div>
@@ -739,7 +713,7 @@ export default function LandingPage() {
 
               <div 
                 className="timeline-card glass-card cursor-pointer" 
-                onClick={() => navigate(isAuthenticated ? '/jobs' : '/login')}
+                onClick={() => navigate('/login')}
               >
                 <div className="t-step">05</div>
                 <div className="t-icon">🤖</div>
@@ -775,14 +749,14 @@ export default function LandingPage() {
               <a href="#ats-scanner">ATS Optimizer</a>
               <a href="#workflow">Workflow Pipeline</a>
               <button 
-                onClick={() => navigate(isAuthenticated ? '/candidates' : '/login')}
+                onClick={() => navigate('/login')}
                 style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
                 className="text-gray-400 hover:text-purple-300 block text-sm mb-2"
               >
                 Candidate Ranking
               </button>
               <button 
-                onClick={() => navigate(isAuthenticated ? '/jobs' : '/login')}
+                onClick={() => navigate('/login')}
                 style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
                 className="text-gray-400 hover:text-purple-300 block text-sm mb-2"
               >

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Filter, Eye, CheckCircle, XCircle, Users, Sparkles, UserPlus, FileText } from 'lucide-react';
+import { Search, Filter, Eye, CheckCircle, XCircle, Users, Sparkles, UserPlus, FileText, Phone, Trash2 } from 'lucide-react';
 import { candidateService } from '../services/candidateService';
 import { Candidate } from '../types';
 import { Button } from '../components/common/Button';
@@ -63,6 +63,7 @@ export default function Candidates() {
       result = result.filter(c => 
         c.name.toLowerCase().includes(lowercasedSearch) ||
         c.email.toLowerCase().includes(lowercasedSearch) ||
+        (c.phone && c.phone.toLowerCase().includes(lowercasedSearch)) ||
         c.skills.some(s => s.toLowerCase().includes(lowercasedSearch)) ||
         (c.summary && c.summary.toLowerCase().includes(lowercasedSearch)) ||
         (c.resumeFile && c.resumeFile.toLowerCase().includes(lowercasedSearch))
@@ -87,6 +88,18 @@ export default function Candidates() {
       setCandidates(candidates.map(c => c.id === id ? { ...c, status: newStatus as any } : c));
     } catch (err) {
       alert('Failed to update status');
+    }
+  };
+
+  const handleDeleteCandidate = async (candidate: Candidate) => {
+    if (!window.confirm(`Are you sure you want to permanently delete candidate ${candidate.name} and their uploaded resume?`)) {
+      return;
+    }
+    try {
+      await candidateService.deleteCandidate(candidate.id);
+      setCandidates(prev => prev.filter(c => c.id !== candidate.id));
+    } catch (err) {
+      alert('Failed to delete candidate.');
     }
   };
 
@@ -204,6 +217,12 @@ export default function Candidates() {
                     <div>
                       <div className="font-bold text-white tracking-wide">{candidate.name}</div>
                       <div className="text-[#A8A0B8] text-xs font-mono mt-0.5">{candidate.email}</div>
+                      {candidate.phone && (
+                        <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#D8B4FE]/90 mt-0.5">
+                          <Phone className="w-3 h-3 text-[#B86BFF] shrink-0" />
+                          <span>{candidate.phone}</span>
+                        </div>
+                      )}
                       {candidate.resumeFile && (
                         <div className="flex items-center gap-1 text-[10px] font-mono text-[#D8B4FE]/80 mt-1">
                           <FileText className="w-3 h-3 text-[#B86BFF]" />
@@ -236,7 +255,7 @@ export default function Candidates() {
                     <StatusBadge status={candidate.status} />
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1.5">
                       <Button variant="ghost" size="sm" onClick={() => navigate(`/candidates/${candidate.id}`)} title="View Profile">
                         <Eye className="w-4 h-4 text-[#A8A0B8] hover:text-[#B86BFF]" />
                       </Button>
@@ -245,6 +264,9 @@ export default function Candidates() {
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleStatusChange(candidate.id, 'Rejected')} title="Reject Candidate">
                         <XCircle className="w-4 h-4 text-[#A8A0B8] hover:text-red-400" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteCandidate(candidate)} title="Delete Candidate and Resume">
+                        <Trash2 className="w-4 h-4 text-[#A8A0B8] hover:text-red-400" />
                       </Button>
                     </div>
                   </TableCell>

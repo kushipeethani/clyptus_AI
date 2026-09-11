@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
 
 export default function Login() {
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState('');
@@ -26,20 +31,6 @@ export default function Login() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleDemoLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      login('mock-jwt-token-12345', {
-        id: 1,
-        name: 'Demo Recruiter',
-        email: 'admin@example.com',
-        role: 'recruiter'
-      });
-      navigate('/dashboard');
-      setIsLoading(false);
-    }, 600);
   };
 
   return (
@@ -63,9 +54,6 @@ export default function Login() {
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Clyptus AI</span>
         </Link>
-        <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-[#c084fc]">
-          Core v4.9
-        </span>
       </div>
 
       {/* Header section with brand icon */}
@@ -100,7 +88,11 @@ export default function Login() {
       {/* Login Card */}
       <div className="mt-7 sm:mx-auto sm:w-full sm:max-w-md px-4 relative z-10">
         <div className="bg-[rgba(17,10,27,0.7)] backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_35px_rgba(168,85,247,0.15)] py-8 px-5 sm:px-10">
-          <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+          <form className="space-y-5" onSubmit={handleSubmit(onSubmit)} autoComplete="off">
+            {/* Decoy hidden fields to block aggressive browser autofill */}
+            <input type="text" name="prevent_autofill_username" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
+            <input type="password" name="prevent_autofill_password" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" />
+
             {authError && (
               <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-300 text-sm rounded-xl flex items-center gap-2 animate-shake">
                 <span className="w-2 h-2 rounded-full bg-red-400" />
@@ -119,7 +111,13 @@ export default function Login() {
                 </div>
                 <input
                   type="email"
-                  placeholder="admin@example.com"
+                  placeholder="Enter your email"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
                   className="block w-full rounded-xl bg-[rgba(8,4,14,0.85)] border border-white/10 pl-11 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#a855f7] focus:ring-1 focus:ring-[#a855f7] transition-all duration-200"
                   {...register('email', { 
                     required: 'Email is required',
@@ -146,7 +144,10 @@ export default function Login() {
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
+                  autoComplete="new-password"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
                   className="block w-full rounded-xl bg-[rgba(8,4,14,0.85)] border border-white/10 pl-11 pr-11 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#a855f7] focus:ring-1 focus:ring-[#a855f7] transition-all duration-200"
                   {...register('password', { required: 'Password is required' })}
                 />
@@ -191,27 +192,6 @@ export default function Login() {
               ) : (
                 <span>Sign In to Dashboard</span>
               )}
-            </button>
-
-            {/* Divider */}
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="px-3 bg-[#0d0716] text-gray-400 font-mono">OR QUICK ACCESS</span>
-              </div>
-            </div>
-
-            {/* One-Click Demo Login */}
-            <button
-              type="button"
-              onClick={handleDemoLogin}
-              disabled={isLoading}
-              className="w-full py-2.5 px-4 rounded-xl font-semibold text-sm text-[#c084fc] hover:text-white bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 hover:border-purple-500/60 shadow-[0_0_15px_rgba(168,85,247,0.15)] transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4 text-[#c084fc]" />
-              <span>Instant Recruiter Demo Login</span>
             </button>
           </form>
 

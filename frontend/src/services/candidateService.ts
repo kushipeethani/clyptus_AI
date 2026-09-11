@@ -5,6 +5,7 @@ type ApiCandidate = {
   id: number;
   name: string;
   email: string;
+  phone?: string;
   skills: string[];
   experience: number;
   status: Candidate['status'];
@@ -18,6 +19,7 @@ const toCandidate = (candidate: ApiCandidate): Candidate => ({
   id: candidate.id,
   name: candidate.name,
   email: candidate.email,
+  phone: candidate.phone || '',
   experience: candidate.experience,
   skills: candidate.skills,
   status: candidate.status,
@@ -58,6 +60,11 @@ export const candidateService = {
   updateCandidateStatus: async (id: number, status: string): Promise<{ data: Candidate }> => {
     const response = await api.patch<{ data: ApiCandidate }>(`/candidates/${id}/status`, { status });
     return { data: toCandidate(response.data.data) };
+  },
+
+  deleteCandidate: async (id: number): Promise<{ success: boolean; message: string }> => {
+    const response = await api.delete<{ success: boolean; message: string }>(`/candidates/${id}`);
+    return response.data;
   },
 
   getCandidateMatch: async (id: number): Promise<{ data: MatchResult }> => {

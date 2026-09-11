@@ -5,7 +5,7 @@ from Backend.embeddings import create_embedding
 from Backend.llm import extract_skills_and_keywords
 
 
-def create_job(title, description):
+def create_job(title, description, user_id=None):
 
     # Create embedding for the job description
     embedding = create_embedding(description)
@@ -22,15 +22,16 @@ def create_job(title, description):
     cursor.execute(
         """
         INSERT INTO jobs
-        (title, description, embedding, skills, keywords)
-        VALUES (?, ?, ?, ?, ?)
+        (title, description, embedding, skills, keywords, user_id)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
         (
             title,
             description,
             json.dumps(embedding),
             json.dumps(skills),
-            json.dumps(keywords)
+            json.dumps(keywords),
+            user_id
         )
     )
 

@@ -9,6 +9,28 @@ export const api = axios.create({
   },
 });
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  const userStr = localStorage.getItem('user');
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      if (user?.id) {
+        config.headers['X-User-Id'] = String(user.id);
+      }
+    } catch {
+      // ignore parse error
+    }
+  }
+
+  return config;
+});
+
 export const getApiErrorMessage = (error: unknown, fallback: string) => {
   if (axios.isAxiosError(error)) {
     const detail = error.response?.data?.detail;

@@ -190,15 +190,16 @@ export default function Jobs() {
     }
   };
 
-  const handleCopyQuestion = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopyQuestion = (id: string, q: InterviewQuestion) => {
+    const textToCopy = `Question: ${q.question}\n\nIdeal Answer / Expected Response:\n${q.answer || 'N/A'}\n\nRationale: ${q.rationale}`;
+    navigator.clipboard.writeText(textToCopy);
     setCopiedQuestionId(id);
     setTimeout(() => setCopiedQuestionId(null), 2000);
   };
 
   const handleCopyAll = () => {
     if (!generatedKit) return;
-    const content = `INTERVIEW QUESTIONS FOR ${generatedKit.candidateName.toUpperCase()} - ${generatedKit.jobTitle.toUpperCase()}
+    const content = `INTERVIEW QUESTIONS & ANSWERS FOR ${generatedKit.candidateName.toUpperCase()} - ${generatedKit.jobTitle.toUpperCase()}
 Engine: ${generatedKit.source === 'groq-llm' ? `Groq (${generatedKit.model || 'Llama 3.3'})` : 'Calibrated Algorithmic Model'}
 Experience: ${generatedKit.candidateExperience} Years
 Match Score: ${generatedKit.matchedScore}%
@@ -207,9 +208,15 @@ Date: ${generatedKit.generatedAt}
 ${generatedKit.questions.map((q, idx) => `
 Q${idx + 1} [${q.category}] (${q.difficulty})
 Question: ${q.question}
+
+Ideal Answer / Expected Response:
+${q.answer || 'N/A'}
+
 Rationale: ${q.rationale}
+
 Key Evaluation Indicators:
 ${q.whatToLookFor.map(item => `  - ${item}`).join('\n')}
+
 Follow-up Probe: ${q.followUpProbe}
 `).join('\n----------------------------------------\n')}
 `;
@@ -820,7 +827,7 @@ Follow-up Probe: ${q.followUpProbe}
                         </div>
 
                         <button
-                          onClick={() => handleCopyQuestion(q.id, q.question)}
+                          onClick={() => handleCopyQuestion(q.id, q)}
                           className="flex items-center gap-1.5 text-xs font-mono text-[#A8A0B8] hover:text-white px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 transition-colors"
                         >
                           {copiedQuestionId === q.id ? (
@@ -831,7 +838,7 @@ Follow-up Probe: ${q.followUpProbe}
                           ) : (
                             <>
                               <Copy className="w-3.5 h-3.5" />
-                              <span>Copy</span>
+                              <span>Copy Q&A</span>
                             </>
                           )}
                         </button>
@@ -841,6 +848,24 @@ Follow-up Probe: ${q.followUpProbe}
                       <p className="text-lg font-bold text-white leading-snug">
                         "{q.question}"
                       </p>
+
+                      {/* Ideal Model Answer */}
+                      {q.answer && (
+                        <div className="space-y-2.5 bg-gradient-to-r from-emerald-950/40 via-purple-950/30 to-[#0e071a] p-4 md:p-5 rounded-2xl border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.12)]">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-mono font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                              Ideal Model Answer (Key Points)
+                            </p>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-semibold">
+                              2-3 Key Points
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-200 leading-relaxed font-sans whitespace-pre-line space-y-1">
+                            {q.answer}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Context Rationale */}
                       <div className="text-xs font-mono text-[#A8A0B8] flex items-start gap-2 bg-white/[0.02] p-3.5 rounded-xl border border-white/5">
