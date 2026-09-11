@@ -22,6 +22,6 @@ databases:
   # Cloud Managed PostgreSQL Database
   - name: clyptus-postgres
     databaseName: recruitment_db
-    user: postgres
+    user: clyptus_user
     plan: free
     region: oregon
