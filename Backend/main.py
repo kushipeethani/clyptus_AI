@@ -49,8 +49,10 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup_event():
-    create_tables()
-    initialize_embedding_model()
+    try:
+        create_tables()
+    except Exception as e:
+        print(f"[Startup Warning] Could not initialize tables: {e}")
 
 
 # -------------------------
